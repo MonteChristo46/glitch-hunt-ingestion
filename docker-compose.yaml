@@ -7,7 +7,14 @@ services:
     container_name: glitch-hunt-api
     ports:
       - "8000:8000"
-    env_file: .env
+    environment:
+      - REDIS_HOST=glitch-hunt-redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=s3.my-basement.cloud
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=pusteblume123!
+      - MINIO_BUCKET_NAME=glitch-hunt-dev
+      - MINIO_REGION=eu-central-1
     depends_on:
       glitch-hunt-redis:
         condition: service_started
