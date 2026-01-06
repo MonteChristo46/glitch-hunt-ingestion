@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # --- The Ingestion API ---
+  api:
+    build: .
+    container_name: glitch-hunt-api
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      glitch-hunt-redis:
+        condition: service_started
+      glitch-hunt-postgres:
+        condition: service_healthy
+    networks:
+      - glitch-hunt-net
+
+  # --- Short-Term Cache & Events ---
+  glitch-hunt-redis:
+    image: redis:7.2-alpine
+    container_name: glitch-hunt-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - glitch-hunt-net
+
+  # --- Permanent Metadata Store ---
+  glitch-hunt-postgres:
+    image: postgres:16-alpine
+    container_name: glitch-hunt-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ingest_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-ingest_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - glitch-hunt-net
+
+networks:
+  glitch-hunt-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

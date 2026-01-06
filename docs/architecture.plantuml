@@ -1,0 +1,24 @@
+@startuml
+package "Edge Device" {
+  [fs-ingest-daemon] as Daemon
+  database "SQLite" as SQLite
+}
+
+package "Cloud Infrastructure" {
+  [FastAPI Instance] as API
+  queue "Redis Stream" as Stream
+  database "Redis Cache" as Cache
+  [Orchestrator Service] as Orch
+  database "PostgreSQL" as Postgres
+}
+
+[Edge Device] --> [S3 Bucket] : HTTP
+Daemon <-> API : REST Handshake
+Daemon <-> SQLite : Lifecycle State
+
+API <-> Cache : Ephemeral State
+API --> Stream : Push Completed Events
+Stream --> Orch : Consumes Events
+Orch --> Postgres : Permanent Persistence
+Orch --> [AI Model] : Async Analysis
+@enduml
