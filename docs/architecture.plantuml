@@ -1,24 +1,58 @@
 @startuml
-package "Edge Device" {
+!theme plain
+skinparam ranksep 50
+skinparam nodesep 40
+skinparam componentStyle rectangle
+
+' --- LAYER 1: THE SOURCE (EDGE) ---
+node "Edge Environment" #F9F9F9 {
   [fs-ingest-daemon] as Daemon
-  database "SQLite" as SQLite
+  database "SQLite" as SQLite <<WAL>>
+  folder "Local Files" as FS
 }
 
-package "Cloud Infrastructure" {
+' --- LAYER 2: THE GATEWAY (CLOUD ENTRY) ---
+node "Ingestion Layer" #E3F2FD {
   [FastAPI Instance] as API
-  queue "Redis Stream" as Stream
-  database "Redis Cache" as Cache
-  [Orchestrator Service] as Orch
-  database "PostgreSQL" as Postgres
+  database "Redis Cache" as Cache #FFF9C4
 }
 
-[Edge Device] --> [S3 Bucket] : HTTP
-Daemon <-> API : REST Handshake
-Daemon <-> SQLite : Lifecycle State
+' --- LAYER 3: THE NERVOUS SYSTEM (STREAM) ---
+queue "Redis Event Stream" as Stream #FFF9C4
 
-API <-> Cache : Ephemeral State
-API --> Stream : Push Completed Events
-Stream --> Orch : Consumes Events
-Orch --> Postgres : Permanent Persistence
-Orch --> [AI Model] : Async Analysis
+' --- LAYER 4: THE CONSUMERS & LOGIC ---
+package "Consumer Groups" as Consumers {
+  [Persistence Service] as PostgresWorker #C8E6C9
+  [AI Inference Service] as AIService #FFCCBC
+  [Alerting Service] as Alerter #D1C4E9
+}
+
+' --- LAYER 5: STORAGE CLOUD ---
+database "S3 Bucket" as S3 #E1F5FE
+database "PostgreSQL" as Postgres #EEEEEE
+
+' --- FLOW CONNECTIONS ---
+
+' Edge Logic
+Daemon -down-> FS : Watch
+Daemon <-> SQLite : State Tracking
+Daemon -down-> API : HTTPS Upload Handshake
+Daemon -down-> S3 : Image
+
+' API & Cache Logic
+API <-> Cache : Store/Verify Temporary \nUpload State (TTL)
+
+' Ingestion to Stream
+API -down-> Stream : write
+
+' Stream to Consumers
+Stream -down-> Consumers : consume
+
+' Specific Service Logic (Internal to Package)
+AIService -up-> Stream : write
+AIService -down-> S3 : write result
+
+' Package to DB Connection
+Consumers -down-> Postgres : Data & AI Results
+
 @enduml
