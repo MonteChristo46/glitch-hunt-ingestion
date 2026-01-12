@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.ingest import router as ingest_router
+from app.api.monitoring import router as monitoring_router
 from app.redis.client import redis_client
+from prometheus_fastapi_instrumentator import Instrumentator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,11 +19,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(ingest_router, prefix="/v1/ingest", tags=["Ingest"])
+# Prometheus Instrumentation
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_instrument_requests_inprogress=True,
+    excluded_handlers=[".*admin.*", "/metrics"],
+    inprogress_name="inprogress",
+    inprogress_labels=True,
+)
+instrumentator.instrument(app)
 
-@app.get("/")
-def health_check():
-    return {"status": "ok", "service": "glitch-hunt-ingestion"}
+# Include Routers
+app.include_router(ingest_router, prefix="/v1/ingest", tags=["Ingest"])
+app.include_router(monitoring_router, tags=["Monitoring"])
 
 if __name__ == "__main__":
     import uvicorn

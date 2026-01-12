@@ -17,10 +17,12 @@ class RedisClient:
     async def close(self):
         await self.redis.close()
 
-    async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30):
+    async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30, server_start_time: float | None = None):
         key = f"handshake:{handshake_id}"
         # Serialize datetime objects to string for JSON serialization
         data = payload.model_dump(mode='json')
+        if server_start_time is not None:
+            data['_server_start_time'] = server_start_time
         await self.redis.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
 
     async def get_handshake(self, handshake_id: UUID) -> dict | None:

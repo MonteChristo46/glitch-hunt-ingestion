@@ -38,8 +38,12 @@ COPY ./app /app/app
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
+# Prometheus Multi-process Directory
+ENV PROMETHEUS_MULTIPROC_DIR=/prometheus_multiproc_dir
+RUN mkdir -p $PROMETHEUS_MULTIPROC_DIR && chmod 777 $PROMETHEUS_MULTIPROC_DIR
+
 # Expose the FastAPI default port
 EXPOSE 8000
 
 # Start the application using uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
