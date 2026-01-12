@@ -61,8 +61,5 @@ async def ingest_confirm(
 
     # Push to Redis Stream
     await redis.push_event(request.handshake_id, request, handshake_data)
-    
-    # We could delete the handshake key here, but keeping it until TTL expires might be useful for idempotency or debugging.
-    # The requirements don't explicitly say to delete it.
-    
+
     return {"status": "processed"}

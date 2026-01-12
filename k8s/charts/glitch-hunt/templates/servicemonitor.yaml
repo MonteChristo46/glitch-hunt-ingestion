@@ -1,0 +1,22 @@
+{{- if and .Values.api.monitoring.enabled .Values.api.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "glitch-hunt.fullname" . }}-api
+  labels:
+    {{- include "glitch-hunt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+    {{- with .Values.api.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "glitch-hunt.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.api.monitoring.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.api.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}
