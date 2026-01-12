@@ -8,13 +8,16 @@ Architecture Pattern: Event-Driven with Ephemeral Handshake.
 ## General Instructions
 
 - Framework python and fastapi as well as UV.
-- The general architecture is depecited in the plantUML file in @docs/architecture.plantuml
+- The general architecture of the overall application is depicted in the plantUML file in @docs/architecture.plantuml. Our focus in the API
 - Package Manager: uv
 - State Management (Short-term): Redis Cache (glitch-hunt-redis) 
 - Event Pipeline (Async): Redis Streams
 - Permanent Storage: PostgreSQL (glitch-hunt-postgres)
 - Cloud Storage: MINIO (Binary Data)
-- My docker-compose should spin up the redis and postgress stuff for local run.
+- My docker-compose should spin up the redis and postgress stuff for local run
+- When creating Dockerfiles use multi staging if applicable. Im targeting fast builds
+- Use Helm  for deployment to k8s tasks
+- You can access the k8s cluster via kubectl
 
 ## --- MinIO Configurations ---
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "s3.my-basement.cloud")
@@ -46,7 +49,7 @@ Persist to Redis: Store full payload in Redis Cache (handshake:{id}) with a 30-m
 Sign URL: Generate a Boto3 S3 PUT Presigned URL.
 Response: 
 {
-  "correlation_id": "uuid",
+  "handshake_id": "uuid",
   "upload_url": "https://s3...",
   "expires_at": "ISO8601-UTC"
 }
@@ -55,7 +58,7 @@ Response:
 Purpose: Finalizes the transfer. Triggers the Orchestrator and authorizes the Edge to prune.
 Data Contract (Request):
 {
-  "correlation_id": "uuid",
+  "handshake_id": "uuid",
   "status": "SUCCESS | FAILED",
   "error_message": "string (optional)"
 }
