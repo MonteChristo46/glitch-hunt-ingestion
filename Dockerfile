@@ -2,9 +2,10 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 # Optimized UV settings for Docker
+# Use system python to ensure symlinks in .venv point to /usr/local/bin/python
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_PREFERENCE=only-managed
+    UV_PYTHON_PREFERENCE=system
 
 WORKDIR /app
 

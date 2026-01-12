@@ -1,0 +1,77 @@
+# Default values for glitch-hunt.
+
+api:
+  replicaCount: 1
+  image:
+    repository: harbor.my-basement.cloud/subsy/glitch-hunt-api:dev-latest
+    pullPolicy: Always
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: glitch-hunt-ingestion.my-basement.cloud
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+  env:
+    # MINIO_ENDPOINT: "s3.my-basement.cloud" # Moved to config/secret
+    # MINIO_REGION: "eu-central-1"
+    # MINIO_BUCKET_NAME: "glitch-hunt-dev"
+    logLevel: "info"
+  resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7.2-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 6379
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    # storageClass: ""
+
+postgres:
+  enabled: true
+  # Settings for the CloudNativePG (CNPG) Cluster Resource
+  clusterName: glitch-hunt-db
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  storage:
+    size: 5Gi
+    # storageClass: ""
+  bootstrap:
+    initdb:
+      database: ingest_db
+      owner: admin
+  monitoring:
+    enablePodMonitor: false
+
+minio:
+  endpoint: "s3.my-basement.cloud"
+  accessKey: ""
+  secretKey: ""
+  region: "eu-central-1"
+  bucketName: ""

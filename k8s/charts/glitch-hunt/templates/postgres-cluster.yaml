@@ -1,0 +1,28 @@
+{{- if .Values.postgres.enabled -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.postgres.clusterName }}
+  labels:
+    {{- include "glitch-hunt.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.postgres.instances }}
+  imageName: {{ .Values.postgres.imageName }}
+  storage:
+    size: {{ .Values.postgres.storage.size }}
+    {{- if .Values.postgres.storage.storageClass }}
+    storageClass: {{ .Values.postgres.storage.storageClass }}
+    {{- end }}
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.bootstrap.initdb.database }}
+      owner: {{ .Values.postgres.bootstrap.initdb.owner }}
+  {{- if .Values.postgres.monitoring.enablePodMonitor }}
+  monitoring:
+    enablePodMonitor: true
+    {{- if .Values.postgres.monitoring.podMonitorLabels }}
+    podMonitorLabels:
+      {{- toYaml .Values.postgres.monitoring.podMonitorLabels | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end -}}

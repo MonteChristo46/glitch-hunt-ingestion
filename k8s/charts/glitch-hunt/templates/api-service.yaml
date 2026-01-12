@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "glitch-hunt.fullname" . }}-api
+  labels:
+    {{- include "glitch-hunt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - port: {{ .Values.api.service.port }}
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "glitch-hunt.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api

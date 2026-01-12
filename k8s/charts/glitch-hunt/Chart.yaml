@@ -1,0 +1,6 @@
+apiVersion: v2
+name: glitch-hunt
+description: A Helm chart for the Glitch Hunt Ingestion API, including Redis and Postgres Operator resources.
+type: application
+version: 0.1.1
+appVersion: "1.0.0"
