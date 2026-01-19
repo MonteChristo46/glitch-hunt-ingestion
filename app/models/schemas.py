@@ -46,6 +46,3 @@ class PairingStatus(str, Enum):
 class PairingStatusResponse(BaseModel):
     status: PairingStatus
     apikey: Optional[str] = None
-
-class PairingClaimRequest(BaseModel):
-    code: str

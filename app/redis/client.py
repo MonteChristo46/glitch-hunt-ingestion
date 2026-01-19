@@ -65,55 +65,38 @@ class RedisClient:
         await self.redis.xadd(settings.REDIS_STREAM_KEY, event_data)
 
     async def create_pairing_code(self, device_id: str, ttl_minutes: int = 15) -> int:
-        # Generate a 6-character alphanumeric code
+        # Generate a 6-character alphanumeric code in XXX-XXX format
         chars = string.ascii_uppercase + string.digits
-        code = ''.join(secrets.choice(chars) for _ in range(6))
+        part1 = ''.join(secrets.choice(chars) for _ in range(3))
+        part2 = ''.join(secrets.choice(chars) for _ in range(3))
+        code = f"{part1}-{part2}"
         
-        # Store code -> device mapping
-        code_key = f"pairing:code:{code}"
-        await self.redis.setex(code_key, timedelta(minutes=ttl_minutes), device_id)
-        
-        # Initialize device status
-        device_key = f"pairing:device:{device_id}"
-        initial_status = {
-            "status": PairingStatus.WAITING.value,
-            "apikey": None
+        # Store code -> device mapping with status
+        # This matches the schema expected by the external Claim API
+        key = f"pairing:{code}"
+        data = {
+            "device_id": device_id,
+            "status": PairingStatus.WAITING.value
         }
-        # Status TTL should match or slightly exceed code TTL to allow for polling
-        await self.redis.setex(device_key, timedelta(minutes=ttl_minutes), json.dumps(initial_status))
+        await self.redis.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
         
         return code
 
-    async def get_pairing_status(self, device_id: str) -> dict | None:
-        key = f"pairing:device:{device_id}"
+    async def get_pairing_status(self, code: str, device_id: str) -> dict | None:
+        key = f"pairing:{code}"
         data = await self.redis.get(key)
-        if data:
-            return json.loads(data)
-        return None
-
-    async def claim_device(self, code: str) -> dict | None:
-        code_key = f"pairing:code:{code}"
-        device_id = await self.redis.get(code_key)
         
-        if not device_id:
+        if not data:
             return None
             
-        # Generate API Key
-        api_key = secrets.token_urlsafe(32)
-        
-        # Update device status
-        device_key = f"pairing:device:{device_id}"
-        status_data = {
-            "status": PairingStatus.CLAIMED.value,
-            "apikey": api_key
-        }
-        # Extend TTL for the claimed status so the device has time to pick it up
-        await self.redis.setex(device_key, timedelta(minutes=30), json.dumps(status_data))
-        
-        # Remove the code so it can't be used again
-        await self.redis.delete(code_key)
-        
-        return {"device_id": device_id, "apikey": api_key}
+        try:
+            parsed = json.loads(data)
+            # Security check: Ensure the code actually belongs to this device
+            if parsed.get("device_id") != device_id:
+                return None
+            return parsed
+        except json.JSONDecodeError:
+            return None
 
 redis_client = RedisClient()
 
