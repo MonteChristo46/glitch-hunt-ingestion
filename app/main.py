@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.ingest import router as ingest_router
 from app.api.monitoring import router as monitoring_router
+from app.api.pairing import router as pairing_router
 from app.redis.client import redis_client
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -32,6 +33,7 @@ instrumentator.instrument(app)
 
 # Include Routers
 app.include_router(ingest_router, prefix="/v1/ingest", tags=["Ingest"])
+app.include_router(pairing_router, prefix="/v1/pairing", tags=["Pairing"])
 app.include_router(monitoring_router, tags=["Monitoring"])
 
 if __name__ == "__main__":

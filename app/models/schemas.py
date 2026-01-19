@@ -30,3 +30,22 @@ class ConfirmRequest(BaseModel):
     handshake_id: UUID
     status: IngestStatus
     error_message: Optional[str] = None
+
+class PairingRequest(BaseModel):
+    device_id: str
+
+class PairingResponse(BaseModel):
+    code: str
+    expires_at: datetime
+
+class PairingStatus(str, Enum):
+    WAITING = "WAITING"
+    CLAIMED = "CLAIMED"
+    EXPIRED = "EXPIRED"
+
+class PairingStatusResponse(BaseModel):
+    status: PairingStatus
+    apikey: Optional[str] = None
+
+class PairingClaimRequest(BaseModel):
+    code: str
