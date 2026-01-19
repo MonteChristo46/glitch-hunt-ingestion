@@ -4,15 +4,17 @@ from app.api.ingest import router as ingest_router
 from app.api.monitoring import router as monitoring_router
 from app.api.pairing import router as pairing_router
 from app.redis.client import redis_client
+from app.db.session import db_manager
 from prometheus_fastapi_instrumentator import Instrumentator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Redis connection is lazy, so we don't strictly need to do anything here
-    # unless we want to ping it to ensure connectivity.
+    # Startup
+    await db_manager.connect()
     yield
     # Shutdown
     await redis_client.close()
+    await db_manager.disconnect()
 
 app = FastAPI(
     title="Glitch Hunt Ingestion API",

@@ -5,6 +5,7 @@ from prometheus_client import Histogram
 from app.models.schemas import IngestRequest, IngestResponse, ConfirmRequest, IngestStatus
 from app.redis.client import RedisClient, get_redis_client
 from app.services.storage import StorageService, get_storage_service
+from app.db.session import DatabaseManager, get_db
 
 router = APIRouter()
 
@@ -19,8 +20,17 @@ INGESTION_DURATION = Histogram(
 async def ingest_request(
     request: IngestRequest,
     redis: RedisClient = Depends(get_redis_client),
-    storage: StorageService = Depends(get_storage_service)
+    storage: StorageService = Depends(get_storage_service),
+    db: DatabaseManager = Depends(get_db)
 ):
+    # Verify Device Authorization
+    is_allowed = await db.check_device_active(request.device_id)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Device not authorized or inactive"
+        )
+
     start_time = time.time()
     handshake_id = uuid4()
     
