@@ -3,7 +3,7 @@
 api:
   replicaCount: 1
   image:
-    repository: harbor.my-basement.cloud/subsy/glitch-hunt-api:dev-latest
+    repository: harbor.my-basement.cloud/subsy/glitch-hunt-ingestion-api:dev-latest
     pullPolicy: Always
     # Overrides the image tag whose default is the chart appVersion.
     tag: "latest"
@@ -37,6 +37,13 @@ api:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {}
 
 redis:
   enabled: true

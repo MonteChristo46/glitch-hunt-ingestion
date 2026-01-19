@@ -2,7 +2,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "glitch-hunt.fullname" . }}-api
+  name: {{ include "glitch-hunt.fullname" . }}-ingestion-api
   labels:
     {{- include "glitch-hunt.labels" . | nindent 4 }}
     app.kubernetes.io/component: api

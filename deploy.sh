@@ -6,7 +6,7 @@ set -e
 # --- Configuration ---
 HARBOR_REGISTRY="harbor.my-basement.cloud"
 HARBOR_PROJECT="subsy"
-IMAGE_NAME="glitch-hunt-api"
+IMAGE_NAME="glitch-hunt-ingestion-api"
 NAMESPACE="glitch-hunt"
 CHART_PATH="./k8s/charts/glitch-hunt"
 RELEASE_NAME="glitch-hunt"
@@ -79,7 +79,7 @@ helm_upgrade() {
 
 rollout_restart() {
     echo "vk  Triggering Rollout Restart..."
-    kubectl rollout restart deployment/"$RELEASE_NAME"-api -n "$NAMESPACE"
+    kubectl rollout restart deployment/"$RELEASE_NAME"-ingestion-api -n "$NAMESPACE"
     echo "✅ Rollout triggered."
 }
 
