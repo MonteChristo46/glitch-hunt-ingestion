@@ -1,4 +1,5 @@
 import time
+import logging
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from prometheus_client import Histogram
@@ -8,6 +9,7 @@ from app.services.storage import StorageService, get_storage_service
 from app.db.session import DatabaseManager, get_db
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Metrics
 INGESTION_DURATION = Histogram(
@@ -24,8 +26,10 @@ async def ingest_request(
     db: DatabaseManager = Depends(get_db)
 ):
     # Verify Device Authorization
+    logger.debug(f"Checking authorization for device: {request.device_id}")
     is_allowed = await db.check_device_active(request.device_id)
     if not is_allowed:
+        logger.warning(f"Unauthorized access attempt by device: {request.device_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Device not authorized or inactive"

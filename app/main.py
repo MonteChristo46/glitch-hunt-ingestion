@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.ingest import router as ingest_router
@@ -7,12 +8,18 @@ from app.redis.client import redis_client
 from app.db.session import db_manager
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    logger.info("Starting up application...")
     await db_manager.connect()
     yield
     # Shutdown
+    logger.info("Shutting down application...")
     await redis_client.close()
     await db_manager.disconnect()
 
@@ -46,4 +53,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=True,
+        log_level="debug",
     )
