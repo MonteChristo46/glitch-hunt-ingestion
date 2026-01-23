@@ -1,13 +1,14 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
+from datetime import datetime
 from fastapi.testclient import TestClient
 from app.main import app
 from app.db.session import get_db, DatabaseManager
-from app.models.schemas import IngestRequest
+from app.models.schemas import IngestStatus
 
-# Mock the DatabaseManager
+# Create a mock for the db dependency
 mock_db_manager = MagicMock(spec=DatabaseManager)
-mock_db_manager.check_device_active = AsyncMock()
+mock_db_manager.pool = MagicMock() # Mock the pool attribute
 
 # Override the dependency
 async def get_mock_db():
@@ -17,47 +18,112 @@ app.dependency_overrides[get_db] = get_mock_db
 
 client = TestClient(app)
 
-def test_ingest_request_authorized():
-    # Setup mock to return True (Authorized)
-    mock_db_manager.check_device_active.return_value = True
+@patch("app.api.ingest.DeviceHandler")
+@patch("app.api.ingest.StorageService")
+@patch("app.api.ingest.get_redis_client")
+def test_ingest_request_authorized(mock_get_redis, MockStorage, MockDeviceHandler):
+    # Setup Redis Mock
+    mock_redis = AsyncMock()
+    mock_get_redis.return_value = mock_redis
+    
+    # Setup Storage Mock
+    mock_storage = MagicMock()
+    MockStorage.return_value = mock_storage # This mocks the dependency injection? No, depends uses get_storage_service
+    # Wait, the dependency in main.py is get_storage_service. 
+    # But in the test we are patching the class or the dependency?
+    # In `app.api.ingest`, we do `storage: StorageService = Depends(get_storage_service)`.
+    # Let's override the dependency instead of patching the class for cleaner testing.
+    pass
 
-    # Mock storage service to avoid S3 calls
-    with patch("app.api.ingest.StorageService") as MockStorage:
-        instance = MockStorage.return_value
-        instance.generate_presigned_url.return_value = ("http://fake-s3-url", "2024-01-01T00:00:00Z")
-        
-        # We also need to mock redis dependency if it's strictly required or use a fake one
-        # Assuming the dependency override works for db, let's try a request
-        # Note: Redis might still be an issue if not mocked, but let's see. 
-        # Ideally we override get_redis_client too.
-        
-        with patch("app.api.ingest.get_redis_client") as mock_get_redis:
-            mock_redis = AsyncMock()
-            mock_get_redis.return_value = mock_redis
-            
-            payload = {
-                "device_id": "test-device",
-                "filename": "test.log",
-                "file_size_bytes": 1024,
-                "sha256_checksum": "a" * 64,
-                "file_path_context": ["test"],
-                "device_context": {"fw_version": "1.0.0"},
-                "metadata": {},
-                "timestamp": "2024-01-01T00:00:00Z"
-            }
-            
-            response = client.post("/v1/ingest/request", json=payload)
-            
-            # If Redis or Storage aren't fully mocked this might fail 500, but we want to check 403 specifically first
-            # Here we expect 201 because we mocked it to return True
-            
-            # Since I can't easily mock all dependencies without more setup code, 
-            # I will focus on the negative test which stops EARLY at the DB check.
-            pass
+# Let's restart the mocking strategy to be cleaner using dependency overrides.
 
-def test_ingest_request_unauthorized():
-    # Setup mock to return False (Unauthorized)
-    mock_db_manager.check_device_active.return_value = False
+@pytest.fixture
+def mock_redis():
+    mock = AsyncMock()
+    mock.cache_handshake = AsyncMock()
+    mock.get_handshake = AsyncMock()
+    mock.push_event = AsyncMock()
+    return mock
+
+@pytest.fixture
+def mock_storage():
+    mock = MagicMock()
+    # Returns url, key, expires_at
+    mock.generate_presigned_url.return_value = ("http://s3.url", "s3/key", datetime.now())
+    return mock
+
+@pytest.fixture
+def mock_device_handler():
+    mock = AsyncMock()
+    return mock
+
+@pytest.fixture
+def mock_image_handler():
+    mock = AsyncMock()
+    return mock
+
+# We need to patch the Handlers where they are instantiated
+# In ingest.py: `device_handler = DeviceHandler(db.pool)`
+# So we must patch `app.api.ingest.DeviceHandler`
+
+def test_ingest_request_flow(mock_redis, mock_storage):
+    # Override dependencies
+    app.dependency_overrides[get_db] = get_mock_db
+    
+    async def override_get_redis():
+        return mock_redis
+    
+    def override_get_storage():
+        return mock_storage
+        
+    app.dependency_overrides["get_redis_client"] = override_get_redis # String key doesn't work usually, need function obj
+    from app.redis.client import get_redis_client
+    app.dependency_overrides[get_redis_client] = override_get_redis
+    
+    from app.services.storage import get_storage_service
+    app.dependency_overrides[get_storage_service] = override_get_storage
+
+    payload = {
+        "device_id": "test-device",
+        "filename": "test.log",
+        "file_size_bytes": 1024,
+        "sha256_checksum": "a" * 64,
+        "file_path_context": ["test"],
+        "device_context": {"fw_version": "1.0.0"},
+        "metadata": {},
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
+
+    # Patch the DeviceHandler class used inside the route
+    with patch("app.api.ingest.DeviceHandler") as MockDeviceHandler:
+        instance = MockDeviceHandler.return_value
+        instance.is_active = AsyncMock(return_value=True) # Authorized
+
+        response = client.post("/v1/ingest/request", json=payload)
+        
+        assert response.status_code == 201
+        data = response.json()
+        assert "handshake_id" in data
+        assert "upload_url" in data
+        
+        # Verify Storage called
+        mock_storage.generate_presigned_url.assert_called_once()
+        
+        # Verify Redis called
+        mock_redis.cache_handshake.assert_awaited_once()
+        
+        # Verify Device Check
+        instance.is_active.assert_awaited_with("test-device")
+
+def test_ingest_request_unauthorized(mock_redis):
+    # Override dependencies
+    app.dependency_overrides[get_db] = get_mock_db
+    
+    async def override_get_redis():
+        return mock_redis
+        
+    from app.redis.client import get_redis_client
+    app.dependency_overrides[get_redis_client] = override_get_redis
 
     payload = {
         "device_id": "banned-device",
@@ -70,8 +136,85 @@ def test_ingest_request_unauthorized():
         "timestamp": "2024-01-01T00:00:00Z"
     }
 
-    response = client.post("/v1/ingest/request", json=payload)
+    with patch("app.api.ingest.DeviceHandler") as MockDeviceHandler:
+        instance = MockDeviceHandler.return_value
+        instance.is_active = AsyncMock(return_value=False) # Unauthorized
+
+        response = client.post("/v1/ingest/request", json=payload)
+        
+        assert response.status_code == 403
+        instance.is_active.assert_awaited_with("banned-device")
+
+def test_ingest_confirm_success(mock_redis):
+    # Override dependencies
+    app.dependency_overrides[get_db] = get_mock_db
     
-    assert response.status_code == 403
-    assert response.json()["detail"] == "Device not authorized or inactive"
-    mock_db_manager.check_device_active.assert_awaited_with("banned-device")
+    async def override_get_redis():
+        return mock_redis
+        
+    from app.redis.client import get_redis_client
+    app.dependency_overrides[get_redis_client] = override_get_redis
+
+    # Setup Redis to return handshake data
+    handshake_id = "12345678-1234-5678-1234-567812345678"
+    mock_redis.get_handshake.return_value = {
+        "device_id": "test-device",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "metadata": {"s3_key": "path/to/image.jpg"},
+        "device_context": {"foo": "bar"},
+        "_server_start_time": 1000.0
+    }
+
+    payload = {
+        "handshake_id": handshake_id,
+        "status": "SUCCESS"
+    }
+
+    # Patch ImageHandler
+    with patch("app.api.ingest.ImageHandler") as MockImageHandler:
+        instance = MockImageHandler.return_value
+        instance.create = AsyncMock()
+
+        response = client.post("/v1/ingest/confirm", json=payload)
+        
+        assert response.status_code == 200
+        
+        # Verify ImageHandler called
+        instance.create.assert_awaited_once()
+        call_args = instance.create.await_args[0][0] # First arg of first call
+        
+        assert call_args.device_id == "test-device"
+        assert call_args.image_path == "path/to/image.jpg"
+        assert call_args.context == {"foo": "bar"}
+        assert call_args.status == "SUCCESS"
+        
+        # Verify Redis Event Pushed
+        mock_redis.push_event.assert_awaited_once()
+
+def test_ingest_confirm_missing_key(mock_redis):
+    # Test error handling when s3_key is missing
+    app.dependency_overrides[get_db] = get_mock_db
+    
+    async def override_get_redis():
+        return mock_redis
+        
+    from app.redis.client import get_redis_client
+    app.dependency_overrides[get_redis_client] = override_get_redis
+
+    handshake_id = "12345678-1234-5678-1234-567812345678"
+    mock_redis.get_handshake.return_value = {
+        "device_id": "test-device",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "metadata": {}, # Missing s3_key
+        "device_context": {"foo": "bar"}
+    }
+
+    payload = {
+        "handshake_id": handshake_id,
+        "status": "SUCCESS"
+    }
+
+    with patch("app.api.ingest.ImageHandler") as MockImageHandler:
+        response = client.post("/v1/ingest/confirm", json=payload)
+        assert response.status_code == 500
+        assert "s3_key missing" in response.json()["detail"]

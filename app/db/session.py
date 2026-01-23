@@ -6,32 +6,26 @@ class DatabaseManager:
     Manages the PostgreSQL connection pool.
     """
     def __init__(self):
-        self.pool: asyncpg.Pool | None = None
+        self._pool: asyncpg.Pool | None = None
 
     async def connect(self):
-        if not self.pool:
-            self.pool = await asyncpg.create_pool(
+        if not self._pool:
+            self._pool = await asyncpg.create_pool(
                 dsn=settings.DATABASE_URL,
                 min_size=1,
                 max_size=10
             )
 
     async def disconnect(self):
-        if self.pool:
-            await self.pool.close()
-            self.pool = None
+        if self._pool:
+            await self._pool.close()
+            self._pool = None
 
-    async def check_device_active(self, device_id: str) -> bool:
-        """
-        Checks if a device exists and is active.
-        """
-        if not self.pool:
+    @property
+    def pool(self) -> asyncpg.Pool:
+        if not self._pool:
             raise RuntimeError("Database connection not initialized")
-            
-        query = "SELECT 1 FROM devices WHERE device_id = $1 AND is_active = TRUE"
-        async with self.pool.acquire() as conn:
-            result = await conn.fetchval(query, device_id)
-            return result is not None
+        return self._pool
 
 db_manager = DatabaseManager()
 

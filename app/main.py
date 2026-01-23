@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up application...")
     await db_manager.connect()
+    
     yield
     # Shutdown
     logger.info("Shutting down application...")
