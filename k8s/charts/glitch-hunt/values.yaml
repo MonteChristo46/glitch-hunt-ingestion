@@ -78,7 +78,7 @@ postgres:
 
 minio:
   endpoint: "s3.my-basement.cloud"
-  accessKey: ""
-  secretKey: ""
+  accessKey: "admin"
+  secretKey: "pusteblume123!"
   region: "eu-central-1"
-  bucketName: ""
+  bucketName: "glitch-hunt-dev"

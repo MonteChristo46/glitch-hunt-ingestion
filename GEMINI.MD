@@ -37,7 +37,8 @@ Data Contract (Request):
   "filename": "string",
   "file_size_bytes": "int",
   "sha256_checksum": "string(64)",
-  "context": ["string", "string"], 
+  "file_path_context": ["string", "string"], 
+  "device_context": {"key": "value"},
   "metadata": {"key": "value"},
   "timestamp": "ISO8601-UTC"
 }

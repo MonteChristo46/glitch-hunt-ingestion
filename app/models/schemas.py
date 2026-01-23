@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 from uuid import UUID
 from enum import Enum
@@ -9,7 +9,8 @@ class IngestRequest(BaseModel):
     filename: str
     file_size_bytes: int
     sha256_checksum: str = Field(..., min_length=64, max_length=64)
-    context: List[str] = []
+    file_path_context: List[str] = []
+    device_context: Dict[str, Any] = {}
     metadata: Dict[str, str] = {}
     timestamp: datetime
 

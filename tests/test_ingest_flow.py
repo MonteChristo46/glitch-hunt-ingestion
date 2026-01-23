@@ -40,7 +40,8 @@ def test_ingest_request_authorized():
                 "filename": "test.log",
                 "file_size_bytes": 1024,
                 "sha256_checksum": "a" * 64,
-                "context": ["test"],
+                "file_path_context": ["test"],
+                "device_context": {"fw_version": "1.0.0"},
                 "metadata": {},
                 "timestamp": "2024-01-01T00:00:00Z"
             }
@@ -63,7 +64,8 @@ def test_ingest_request_unauthorized():
         "filename": "test.log",
         "file_size_bytes": 1024,
         "sha256_checksum": "a" * 64,
-        "context": ["test"],
+        "file_path_context": ["test"],
+        "device_context": {"fw_version": "1.0.0"},
         "metadata": {},
         "timestamp": "2024-01-01T00:00:00Z"
     }

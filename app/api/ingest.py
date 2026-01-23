@@ -40,7 +40,7 @@ async def ingest_request(
     
     # Generate Presigned URL
     try:
-        upload_url, expires_at = storage.generate_presigned_url(request.filename, request.context)
+        upload_url, expires_at = storage.generate_presigned_url(request.filename, request.file_path_context)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate upload URL")
 

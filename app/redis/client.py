@@ -51,7 +51,8 @@ class RedisClient:
             "sha256_checksum": original_payload.get("sha256_checksum"),
             "timestamp": original_payload.get("timestamp"),
             "metadata": original_payload.get("metadata", {}),
-            "context": original_payload.get("context", [])
+            "file_path_context": original_payload.get("file_path_context", []),
+            "device_context": original_payload.get("device_context", {})
         }
 
         # Construct the Redis Stream entry (Envelope)

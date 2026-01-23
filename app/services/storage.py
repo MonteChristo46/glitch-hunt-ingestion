@@ -16,14 +16,14 @@ class StorageService:
         self.bucket_name = settings.MINIO_BUCKET_NAME
         self.expires_in_seconds = 3600 # 1 hour
 
-    def generate_presigned_url(self, filename: str, context: list[str]) -> tuple[str, datetime]:
+    def generate_presigned_url(self, filename: str, file_path_context: list[str]) -> tuple[str, datetime]:
         """
         Generates a presigned URL for uploading a file.
         Returns the URL and the expiration datetime.
         """
         now = datetime.now(timezone.utc)
         date_path = now.strftime("%Y-%m-%d")
-        context_path = "/".join(context)
+        context_path = "/".join(file_path_context)
         
         # Ensure no double slashes if context is empty
         object_name = f"{context_path}/{date_path}/{filename}" if context_path else f"{date_path}/{filename}"
