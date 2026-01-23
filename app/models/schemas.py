@@ -24,8 +24,8 @@ class IngestStatus(str, Enum):
     FAILED = "FAILED"
 
 class EventType(str, Enum):
-    FILE_UPLOADED = "file.uploaded"
-    AI_PROCESSED = "ai.processed"
+    FILE_UPLOADED = "INGESTED"
+    AI_PROCESSED = "AI_COMPLETE"
 
 class ConfirmRequest(BaseModel):
     handshake_id: UUID
