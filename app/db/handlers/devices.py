@@ -1,6 +1,6 @@
 
 import json
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 from app.db.handlers.base import BaseHandler
 from app.models.device import DeviceCreate, DeviceRead
@@ -72,3 +72,21 @@ class DeviceHandler(BaseHandler):
         async with self.pool.acquire() as conn:
             result = await conn.fetchval(query, device_id)
             return result is not None
+
+    async def update_metadata(self, device_id: str, metadata: Dict[str, Any]) -> Optional[DeviceRead]:
+        query = """
+            UPDATE devices
+            SET metadata = $2
+            WHERE device_id = $1
+            RETURNING device_id, account_id, is_active, metadata
+        """
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, device_id, json.dumps(metadata))
+            if row:
+                return DeviceRead(
+                    device_id=row['device_id'],
+                    account_id=row['account_id'],
+                    is_active=row['is_active'],
+                    metadata=json.loads(row['metadata']) if isinstance(row['metadata'], str) else row['metadata']
+                )
+            return None
