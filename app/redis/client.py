@@ -43,16 +43,22 @@ class RedisClient:
         Envelope: event_type, version, handshake_id
         Payload: JSON string of the actual data
         """
+        # Extract s3_key if available in metadata
+        metadata = original_payload.get("metadata", {})
+        object_key = metadata.get("s3_key")
+
         # Construct the inner payload
         payload_model = IngestionEventPayload(
+            trace_id=str(handshake_id),
             status=confirm_payload.status,
             error_message=confirm_payload.error_message,
             device_id=original_payload.get("device_id"),
             filename=original_payload.get("filename"),
+            object_key=object_key,
             file_size_bytes=original_payload.get("file_size_bytes"),
             sha256_checksum=original_payload.get("sha256_checksum"),
             timestamp=original_payload.get("timestamp"),
-            metadata=original_payload.get("metadata", {}),
+            metadata=metadata,
             file_path_context=original_payload.get("file_path_context", []),
             device_context=original_payload.get("device_context", {})
         )

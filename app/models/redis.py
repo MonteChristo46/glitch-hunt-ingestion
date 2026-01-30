@@ -4,10 +4,12 @@ from pydantic import BaseModel
 from app.models.enums import IngestStatus
 
 class IngestionEventPayload(BaseModel):
+    trace_id: str
     status: IngestStatus
     error_message: Optional[str] = None
     device_id: str
     filename: str
+    object_key: Optional[str] = None
     file_size_bytes: int
     sha256_checksum: str
     timestamp: datetime
