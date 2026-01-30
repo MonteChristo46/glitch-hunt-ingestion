@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 from app.main import app
 from app.db.session import get_db, DatabaseManager
-from app.models.schemas import IngestStatus
+from app.models.enums import IngestStatus
 
 # Create a mock for the db dependency
 mock_db_manager = MagicMock(spec=DatabaseManager)

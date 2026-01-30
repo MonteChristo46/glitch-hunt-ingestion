@@ -3,7 +3,8 @@ import logging
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from prometheus_client import Histogram
-from app.models.schemas import IngestRequest, IngestResponse, ConfirmRequest, IngestStatus
+from app.models.ingest import IngestRequest, IngestResponse, ConfirmRequest
+from app.models.enums import IngestStatus, EventType
 from app.models.image import ImageCreate
 from app.redis.client import RedisClient, get_redis_client
 from app.services.storage import StorageService, get_storage_service
@@ -128,7 +129,8 @@ async def ingest_confirm(
             logger.error(f"Failed to record image in DB: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-    # Push to Redis Stream
-    await redis.push_event(request.handshake_id, request, handshake_data)
+    # Push to Redis Stream only on success
+    if request.status == IngestStatus.SUCCESS:
+        await redis.push_event(request.handshake_id, request, handshake_data, event_type=EventType.FILE_UPLOADED)
 
     return {"status": "processed"}

@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.models.schemas import (
+from app.models.pairing import (
     PairingRequest, 
     PairingResponse, 
-    PairingStatusResponse, 
-    PairingStatus
+    PairingStatusResponse
 )
+from app.models.enums import PairingStatus
 from app.redis.client import RedisClient, get_redis_client
 
 router = APIRouter()

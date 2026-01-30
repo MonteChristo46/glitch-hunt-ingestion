@@ -5,7 +5,9 @@ from uuid import UUID
 from datetime import timedelta
 import redis.asyncio as redis
 from app.config import settings
-from app.models.schemas import IngestRequest, ConfirmRequest, EventType, PairingStatus
+from app.models.ingest import IngestRequest, ConfirmRequest
+from app.models.enums import EventType, PairingStatus, IngestStatus
+from app.models.redis import IngestionEventPayload
 
 class RedisClient:
     def __init__(self):
@@ -34,7 +36,7 @@ class RedisClient:
             return json.loads(data)
         return None
 
-    async def push_event(self, handshake_id: UUID, confirm_payload: ConfirmRequest, original_payload: dict):
+    async def push_event(self, handshake_id: UUID, confirm_payload: ConfirmRequest, original_payload: dict, event_type: EventType = EventType.FILE_UPLOADED):
         """
         Pushes the completed event to the Redis Stream.
         Follows a structured Envelope/Payload pattern.
@@ -42,25 +44,25 @@ class RedisClient:
         Payload: JSON string of the actual data
         """
         # Construct the inner payload
-        payload_data = {
-            "status": confirm_payload.status.value,
-            "error_message": confirm_payload.error_message,
-            "device_id": original_payload.get("device_id"),
-            "filename": original_payload.get("filename"),
-            "file_size_bytes": original_payload.get("file_size_bytes"),
-            "sha256_checksum": original_payload.get("sha256_checksum"),
-            "timestamp": original_payload.get("timestamp"),
-            "metadata": original_payload.get("metadata", {}),
-            "file_path_context": original_payload.get("file_path_context", []),
-            "device_context": original_payload.get("device_context", {})
-        }
+        payload_model = IngestionEventPayload(
+            status=confirm_payload.status,
+            error_message=confirm_payload.error_message,
+            device_id=original_payload.get("device_id"),
+            filename=original_payload.get("filename"),
+            file_size_bytes=original_payload.get("file_size_bytes"),
+            sha256_checksum=original_payload.get("sha256_checksum"),
+            timestamp=original_payload.get("timestamp"),
+            metadata=original_payload.get("metadata", {}),
+            file_path_context=original_payload.get("file_path_context", []),
+            device_context=original_payload.get("device_context", {})
+        )
 
         # Construct the Redis Stream entry (Envelope)
         event_data = {
-            "event_type": EventType.FILE_UPLOADED.value,
+            "event_type": event_type.value,
             "version": settings.EVENT_VERSION,
             "handshake_id": str(handshake_id),
-            "payload": json.dumps(payload_data)
+            "payload": payload_model.model_dump_json()
         }
         
         await self.redis.xadd(settings.REDIS_STREAM_KEY, event_data)
