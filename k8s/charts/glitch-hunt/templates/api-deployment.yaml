@@ -39,12 +39,12 @@ spec:
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "glitch-hunt.fullname" . }}-minio
+                  name: {{ default (printf "%s-minio" (include "glitch-hunt.fullname" .)) .Values.minio.existingSecret }}
                   key: access-key
             - name: MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "glitch-hunt.fullname" . }}-minio
+                  name: {{ default (printf "%s-minio" (include "glitch-hunt.fullname" .)) .Values.minio.existingSecret }}
                   key: secret-key
             {{- if .Values.postgres.enabled }}
             - name: POSTGRES_SERVER

@@ -3,9 +3,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # MinIO Configurations
-    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "s3.my-basement.cloud")
-    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "admin")
-    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "pusteblume123!")
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "blob.my-basement.cloud")
+    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "admin-de1b7035")
+    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "4MoXVEV2WHEpb90hfWpmGIdafqFH95pC")
     MINIO_REGION: str = os.getenv("MINIO_REGION", "eu-central-1")
     MINIO_BUCKET_NAME: str = os.getenv("MINIO_BUCKET_NAME", "glitch-hunt-dev")
     

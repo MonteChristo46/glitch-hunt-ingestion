@@ -77,8 +77,12 @@ postgres:
     enablePodMonitor: false
 
 minio:
-  endpoint: "s3.my-basement.cloud"
-  accessKey: "admin"
-  secretKey: "pusteblume123!"
+  endpoint: "blob.my-basement.cloud"
   region: "eu-central-1"
   bucketName: "glitch-hunt-dev"
+  # If existingSecret is provided, accessKey and secretKey are ignored.
+  # The secret must contain 'access-key' and 'secret-key' keys.
+  existingSecret: ""
+  # Use these only if existingSecret is empty.
+  accessKey: ""
+  secretKey: ""

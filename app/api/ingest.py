@@ -51,23 +51,7 @@ async def ingest_request(
         logger.error(f"Failed to generate upload URL: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate upload URL")
 
-    # Add s3_key to request for persistence
-    # We modify the request object wrapper to include the key for Redis storage
-    # Pydantic models are immutable by default if configured so, but we are dumping to dict later in redis client
-    # Or we can attach it to metadata? No, it's better to store it explicitly.
-    # The redis client accepts IngestRequest. We need to pass the key separately or rely on RedisClient modification.
-    # Actually, RedisClient.cache_handshake calls model_dump.
-    # Let's modify RedisClient.cache_handshake to accept extra data or update the payload before passing.
-    
-    # Hack: We add it to metadata if we don't want to change RedisClient signature too much, 
-    # OR we just pass it as a separate arg if we update RedisClient.
-    # But wait, I didn't update RedisClient.
-    # I should update RedisClient to accept extra fields or handle the dict.
-    
-    # Let's look at RedisClient again. It takes `payload: IngestRequest`.
-    # It dumps it.
-    
-    # I will do a quick workaround: Update metadata with s3_key.
+
     request.metadata['s3_key'] = object_key
 
     # Persist to Redis Cache
