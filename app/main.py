@@ -10,7 +10,7 @@ from app.db.session import db_manager
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
