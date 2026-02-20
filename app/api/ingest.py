@@ -33,8 +33,9 @@ async def ingest_request(
     
     # Verify Device Authorization
     logger.debug(f"Checking authorization for device: {request.device_id}")
-    is_allowed = await device_handler.is_active(request.device_id)
-    if not is_allowed:
+    device = await device_handler.get_by_id(request.device_id)
+
+    if not device or not device.is_active:
         logger.warning(f"Unauthorized access attempt by device: {request.device_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -46,7 +47,12 @@ async def ingest_request(
     
     # Generate Presigned URL
     try:
-        upload_url, object_key, expires_at = storage.generate_presigned_url(request.filename, request.file_path_context)
+        upload_url, object_key, expires_at = storage.generate_presigned_url(
+            filename=request.filename, 
+            file_path_context=request.file_path_context,
+            account_id=str(device.account_id),
+            device_id=request.device_id
+        )
     except Exception as e:
         logger.error(f"Failed to generate upload URL: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate upload URL")
