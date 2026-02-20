@@ -1,7 +1,7 @@
 from enum import Enum
 
 class IngestStatus(str, Enum):
-    SUCCESS = "SUCCESS"
+    INGESTED = "INGESTED"
     FAILED = "FAILED"
 
 class EventType(str, Enum):

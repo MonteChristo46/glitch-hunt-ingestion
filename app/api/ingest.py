@@ -91,7 +91,7 @@ async def ingest_confirm(
         INGESTION_DURATION.labels(status=request.status.value).observe(duration)
     
     # If success, write to DB
-    if request.status == IngestStatus.SUCCESS:
+    if request.status == IngestStatus.INGESTED:
         image_handler = ImageHandler(db.pool)
         
         # Extract s3_key from metadata (where we stored it)
@@ -120,7 +120,7 @@ async def ingest_confirm(
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
     # Push to Redis Stream only on success
-    if request.status == IngestStatus.SUCCESS:
+    if request.status == IngestStatus.INGESTED:
         await redis.push_event(request.handshake_id, request, handshake_data, event_type=EventType.FILE_UPLOADED)
 
     return {"status": "processed"}

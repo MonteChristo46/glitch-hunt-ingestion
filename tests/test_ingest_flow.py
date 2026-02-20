@@ -167,7 +167,7 @@ def test_ingest_confirm_success(mock_redis):
 
     payload = {
         "handshake_id": handshake_id,
-        "status": "SUCCESS"
+        "status": "INGESTED"
     }
 
     # Patch ImageHandler
@@ -186,7 +186,7 @@ def test_ingest_confirm_success(mock_redis):
         assert call_args.device_id == "test-device"
         assert call_args.image_path == "path/to/image.jpg"
         assert call_args.context == {"foo": "bar"}
-        assert call_args.status == "SUCCESS"
+        assert call_args.status == "INGESTED"
         
         # Verify Redis Event Pushed
         mock_redis.push_event.assert_awaited_once()
@@ -211,7 +211,7 @@ def test_ingest_confirm_missing_key(mock_redis):
 
     payload = {
         "handshake_id": handshake_id,
-        "status": "SUCCESS"
+        "status": "INGESTED"
     }
 
     with patch("app.api.ingest.ImageHandler") as MockImageHandler:
