@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     
     # Event Configuration
     EVENT_VERSION: str = os.getenv("EVENT_VERSION", "1.0")
+
+    LOG_LEVEL: str = "INFO"
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
