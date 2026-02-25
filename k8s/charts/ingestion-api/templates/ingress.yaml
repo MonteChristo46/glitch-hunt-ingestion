@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}-ingestion-api
+  name: {{ $fullName }}
   labels:
     {{- include "glitch-hunt.labels" . | nindent 4 }}
   {{- with .Values.api.ingress.annotations }}
@@ -35,7 +35,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ $fullName }}-ingestion-api
+                name: {{ $fullName }}
                 port:
                   number: {{ $svcPort }}
           {{- end }}

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "glitch-hunt.fullname" . }}-ingestion-api
+  name: {{ include "glitch-hunt.fullname" . }}
   labels:
     {{- include "glitch-hunt.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
@@ -27,7 +27,7 @@ spec:
               protocol: TCP
           env:
             - name: REDIS_HOST
-              value: {{ include "glitch-hunt.fullname" . }}-redis
+              value: {{ .Values.redis.fullnameOverride | default (printf "%s-redis" (include "glitch-hunt.fullname" .)) }}
             - name: REDIS_PORT
               value: "{{ .Values.redis.service.port }}"
             - name: MINIO_ENDPOINT

@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "glitch-hunt.fullname" . }}-redis-pvc
+  name: {{ .Values.redis.fullnameOverride | default (printf "%s-redis" (include "glitch-hunt.fullname" .)) }}-pvc
   labels:
     {{- include "glitch-hunt.labels" . | nindent 4 }}
     app.kubernetes.io/component: redis

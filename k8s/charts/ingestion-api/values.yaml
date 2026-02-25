@@ -3,7 +3,7 @@
 api:
   replicaCount: 1
   image:
-    repository: harbor.my-basement.cloud/subsy/glitch-hunt-ingestion-api:dev-latest
+    repository: harbor.my-basement.cloud/shade-master/glitch-hunt-ingestion-api
     pullPolicy: Always
     # Overrides the image tag whose default is the chart appVersion.
     tag: "latest"

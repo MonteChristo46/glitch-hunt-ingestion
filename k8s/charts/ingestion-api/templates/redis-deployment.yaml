@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "glitch-hunt.fullname" . }}-redis
+  name: {{ .Values.redis.fullnameOverride | default (printf "%s-redis" (include "glitch-hunt.fullname" .)) }}
   labels:
     {{- include "glitch-hunt.labels" . | nindent 4 }}
     app.kubernetes.io/component: redis
@@ -32,4 +32,4 @@ spec:
       volumes:
         - name: redis-data
           persistentVolumeClaim:
-            claimName: {{ include "glitch-hunt.fullname" . }}-redis-pvc
+            claimName: {{ .Values.redis.fullnameOverride | default (printf "%s-redis" (include "glitch-hunt.fullname" .)) }}-pvc
