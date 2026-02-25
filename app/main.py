@@ -8,10 +8,8 @@ from app.api.devices import router as devices_router
 from app.redis.client import redis_client
 from app.db.session import db_manager
 from prometheus_fastapi_instrumentator import Instrumentator
-from app.core.logging import setup_logging
 
 # Configure logging
-setup_logging()
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
