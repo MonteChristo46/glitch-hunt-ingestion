@@ -27,9 +27,9 @@ spec:
               protocol: TCP
           env:
             - name: REDIS_HOST
-              value: {{ .Values.redis.fullnameOverride | default (printf "%s-redis" (include "glitch-hunt.fullname" .)) }}
+              value: "glitch-hunt-redis"
             - name: REDIS_PORT
-              value: "{{ .Values.redis.service.port }}"
+              value: "6379"
             - name: MINIO_ENDPOINT
               value: {{ .Values.minio.endpoint | quote }}
             - name: MINIO_REGION
@@ -46,20 +46,18 @@ spec:
                 secretKeyRef:
                   name: {{ default (printf "%s-minio" (include "glitch-hunt.fullname" .)) .Values.minio.existingSecret }}
                   key: secret-key
-            {{- if .Values.postgres.enabled }}
             - name: POSTGRES_SERVER
-              value: {{ .Values.postgres.clusterName }}-rw
+              value: "glitch-hunt-db-rw"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_DB
-              value: {{ .Values.postgres.bootstrap.initdb.database | quote }}
+              value: "ingest_db"
             - name: POSTGRES_USER
-              value: {{ .Values.postgres.bootstrap.initdb.owner | quote }}
+              value: "admin"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.clusterName }}-app
+                  name: "glitch-hunt-db-app"
                   key: password
-            {{- end }}
           resources:
             {{- toYaml .Values.api.resources | nindent 12 }}

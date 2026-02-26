@@ -45,37 +45,6 @@ api:
       scrapeTimeout: 10s
       labels: {}
 
-redis:
-  enabled: true
-  image:
-    repository: redis
-    tag: "7.2-alpine"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 6379
-  persistence:
-    enabled: true
-    size: 1Gi
-    accessMode: ReadWriteOnce
-    # storageClass: ""
-
-postgres:
-  enabled: true
-  # Settings for the CloudNativePG (CNPG) Cluster Resource
-  clusterName: glitch-hunt-db
-  instances: 1
-  imageName: ghcr.io/cloudnative-pg/postgresql:17
-  storage:
-    size: 5Gi
-    # storageClass: ""
-  bootstrap:
-    initdb:
-      database: ingest_db
-      owner: admin
-  monitoring:
-    enablePodMonitor: false
-
 minio:
   endpoint: "blob.my-basement.cloud"
   region: "eu-central-1"
