@@ -112,7 +112,15 @@ async def ingest_confirm(
             logger.error(f"Failed to record image in DB: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-
+    # Push to Redis Stream
+    try:
+        await redis.push_event(request.handshake_id, request, handshake_data)
+        logger.info(f"Published event for handshake {request.handshake_id}")
+    except Exception as e:
+        logger.error(f"Failed to publish event for handshake {request.handshake_id}: {e}")
+        # Decide on error handling: fail the request or just log?
+        # For now, we'll log and proceed.
+        
     # Calculate and record total ingestion duration
     if start_time:
         duration = time.time() - start_time
