@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 # Metrics
 INGESTION_DURATION = Histogram(
     "glitch_hunt_ingestion_duration_seconds",
-    "Time from handshake request to confirmation",
+    "Time from handshake request to confirmation (Latency to Que)",
     ["status"]
 )
+
 
 @router.post("/request", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
 async def ingest_request(
@@ -84,25 +85,17 @@ async def ingest_confirm(
             detail="Handshake not found or expired"
         )
 
-    # Calculate and record ingestion duration
     start_time = handshake_data.get("_server_start_time")
-    if start_time:
-        duration = time.time() - start_time
-        INGESTION_DURATION.labels(status=request.status.value).observe(duration)
-    
+
     # If success, write to DB
     if request.status == IngestStatus.INGESTED:
         image_handler = ImageHandler(db.pool)
         
-        # Extract s3_key from metadata (where we stored it)
         metadata = handshake_data.get("metadata", {})
         s3_key = metadata.get("s3_key")
         
         if not s3_key:
-            # Fallback if not found (shouldn't happen with new flow)
             logger.error(f"Missing s3_key for handshake {request.handshake_id}")
-            # We might want to construct it or fail. 
-            # For now, let's assume it's there or fail.
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Integrity Error: s3_key missing")
 
         try:
@@ -112,15 +105,17 @@ async def ingest_confirm(
                 captured_at=handshake_data.get("timestamp"),
                 image_path=s3_key,
                 context=handshake_data.get("device_context", {}),
-                route_key=None # You can add logic here to determine route key
+                route_key=None
             )
             await image_handler.create(image_create)
         except Exception as e:
             logger.error(f"Failed to record image in DB: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")
 
-    # Push to Redis Stream only on success
-    if request.status == IngestStatus.INGESTED:
-        await redis.push_event(request.handshake_id, request, handshake_data, event_type=EventType.FILE_UPLOADED)
+
+    # Calculate and record total ingestion duration
+    if start_time:
+        duration = time.time() - start_time
+        INGESTION_DURATION.labels(status=request.status.value).observe(duration)
 
     return {"status": "processed"}
