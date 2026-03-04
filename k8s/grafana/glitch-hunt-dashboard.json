@@ -32,7 +32,7 @@
       },
       "id": 20,
       "panels": [],
-      "title": "🚦 Application Health (HTTP Golden Signals)",
+      "title": "\ud83d\udea6 Application Health (HTTP Golden Signals)",
       "type": "row"
     },
     {
@@ -310,7 +310,7 @@
       },
       "id": 22,
       "panels": [],
-      "title": "📁 Ingestion Business Logic (Custom Metrics)",
+      "title": "\ud83d\udcc1 Ingestion Business Logic (Custom Metrics)",
       "type": "row"
     },
     {
@@ -556,6 +556,147 @@
       ],
       "title": "Total Files Ingested",
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 30,
+      "panels": [],
+      "title": "\ud83e\udde0 Inference Worker",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Rate of inference requests processed per model.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(glitch_hunt_inference_latency_to_queue_seconds_count{namespace=\"$namespace\"}[1m])) by (model_name)",
+          "legendFormat": "Inference Rate - {{model_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Inference Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Latency for inference processing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            }
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum(rate(glitch_hunt_inference_latency_to_queue_seconds_bucket{namespace=\"$namespace\"}[5m])) by (le, model_name))",
+          "legendFormat": "P95 Latency - {{model_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Inference Latency (P95)",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
