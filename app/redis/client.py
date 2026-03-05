@@ -71,7 +71,12 @@ class RedisClient:
             "payload": payload_model.model_dump_json()
         }
         
-        await self.redis.xadd(settings.REDIS_STREAM_KEY, event_data)
+        await self.redis.xadd(
+            settings.REDIS_STREAM_KEY,
+            event_data,
+            maxlen=settings.REDIS_STREAM_MAXLEN,
+            approximate=True
+        )
 
     async def create_pairing_code(self, device_id: str, ttl_minutes: int = 15) -> int:
         # Generate a 6-character alphanumeric code in XXX-XXX format

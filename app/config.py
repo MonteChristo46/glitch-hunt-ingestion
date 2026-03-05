@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
     REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
     REDIS_STREAM_KEY: str = "ingest:events"
+    REDIS_STREAM_MAXLEN: int = int(os.getenv("REDIS_STREAM_MAXLEN", 1000000))
 
     # Postgres Configuration
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "admin")

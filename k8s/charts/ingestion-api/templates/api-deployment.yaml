@@ -30,6 +30,8 @@ spec:
               value: "glitch-hunt-redis"
             - name: REDIS_PORT
               value: "6379"
+            - name: REDIS_STREAM_MAXLEN
+              value: {{ .Values.api.env.redisStreamMaxlen | quote }}
             - name: MINIO_ENDPOINT
               value: {{ .Values.minio.endpoint | quote }}
             - name: MINIO_REGION
