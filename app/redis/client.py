@@ -21,12 +21,14 @@ class RedisClient:
     async def close(self):
         await self.redis.close()
 
-    async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30, server_start_time: float | None = None):
+    async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30, server_start_time: float | None = None, account_id: str | None = None):
         key = f"handshake:{handshake_id}"
         # Serialize datetime objects to string for JSON serialization
         data = payload.model_dump(mode='json')
         if server_start_time is not None:
             data['_server_start_time'] = server_start_time
+        if account_id is not None:
+            data['account_id'] = account_id
         await self.redis.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
 
     async def get_handshake(self, handshake_id: UUID) -> dict | None:
@@ -50,7 +52,7 @@ class RedisClient:
         # Construct the inner payload
         payload_model = IngestionEventPayload(
             trace_id=str(handshake_id),
-            status=confirm_payload.status,
+            account_id=original_payload.get("account_id"),
             error_message=confirm_payload.error_message,
             device_id=original_payload.get("device_id"),
             filename=original_payload.get("filename"),

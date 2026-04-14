@@ -5,7 +5,7 @@ from app.models.enums import IngestStatus
 
 class IngestionEventPayload(BaseModel):
     trace_id: str
-    status: IngestStatus
+    account_id: str
     error_message: Optional[str] = None
     device_id: str
     filename: str

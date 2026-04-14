@@ -62,7 +62,12 @@ async def ingest_request(
     request.metadata['s3_key'] = object_key
 
     # Persist to Redis Cache
-    await redis.cache_handshake(handshake_id, request, server_start_time=start_time)
+    await redis.cache_handshake(
+        handshake_id, 
+        request, 
+        server_start_time=start_time, 
+        account_id=str(device.account_id)
+    )
 
     return IngestResponse(
         handshake_id=handshake_id,

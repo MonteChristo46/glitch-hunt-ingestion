@@ -97,7 +97,10 @@ def test_ingest_request_flow(mock_redis, mock_storage):
     # Patch the DeviceHandler class used inside the route
     with patch("app.api.ingest.DeviceHandler") as MockDeviceHandler:
         instance = MockDeviceHandler.return_value
-        instance.is_active = AsyncMock(return_value=True) # Authorized
+        from app.models.device import DeviceRead
+        from uuid import uuid4
+        mock_device = DeviceRead(device_id="test-device", account_id=uuid4(), is_active=True)
+        instance.get_by_id = AsyncMock(return_value=mock_device)
 
         response = client.post("/v1/ingest/request", json=payload)
         
@@ -113,7 +116,7 @@ def test_ingest_request_flow(mock_redis, mock_storage):
         mock_redis.cache_handshake.assert_awaited_once()
         
         # Verify Device Check
-        instance.is_active.assert_awaited_with("test-device")
+        instance.get_by_id.assert_awaited_with("test-device")
 
 def test_ingest_request_unauthorized(mock_redis):
     # Override dependencies
@@ -138,12 +141,12 @@ def test_ingest_request_unauthorized(mock_redis):
 
     with patch("app.api.ingest.DeviceHandler") as MockDeviceHandler:
         instance = MockDeviceHandler.return_value
-        instance.is_active = AsyncMock(return_value=False) # Unauthorized
+        instance.get_by_id = AsyncMock(return_value=None) # Unauthorized
 
         response = client.post("/v1/ingest/request", json=payload)
         
         assert response.status_code == 403
-        instance.is_active.assert_awaited_with("banned-device")
+        instance.get_by_id.assert_awaited_with("banned-device")
 
 def test_ingest_confirm_success(mock_redis):
     # Override dependencies
