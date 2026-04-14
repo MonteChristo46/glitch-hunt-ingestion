@@ -104,13 +104,21 @@ async def ingest_confirm(
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Integrity Error: s3_key missing")
 
         try:
+            fpc = handshake_data.get("file_path_context", [])
+            route_key = ".".join(str(x) for x in fpc) if fpc else None
+
+            ctx = handshake_data.get("device_context", {})
+            if fpc:
+                ctx["file_path_context"] = fpc
+
             image_create = ImageCreate(
+                id=request.handshake_id,
                 device_id=handshake_data.get("device_id"),
                 status=request.status.value,
                 captured_at=handshake_data.get("timestamp"),
                 image_path=s3_key,
-                context=handshake_data.get("device_context", {}),
-                route_key=None
+                context=ctx,
+                route_key=route_key
             )
             await image_handler.create(image_create)
         except Exception as e:

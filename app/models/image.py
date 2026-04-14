@@ -12,7 +12,7 @@ class ImageBase(BaseModel):
     route_key: Optional[str] = None
 
 class ImageCreate(ImageBase):
-    pass
+    id: Optional[UUID] = None
 
 class ImageRead(ImageBase):
     id: UUID
