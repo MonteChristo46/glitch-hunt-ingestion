@@ -6,10 +6,13 @@ NAMESPACE="${NAMESPACE:-glitch-hunt}"
 # Release name assumption: glitch-hunt. If different, update these variables.
 PG_CLUSTER_NAME="${PG_CLUSTER_NAME:-glitch-hunt-db}"
 REDIS_SERVICE_NAME="${REDIS_SERVICE_NAME:-glitch-hunt-redis}"
+MQTT_SERVICE_NAME="${MQTT_SERVICE_NAME:-glitch-hunt-mqtt-vernemq}"
 
 # Local ports to avoid conflicts with local services
 LOCAL_PG_PORT="${LOCAL_PG_PORT:-5433}"
 LOCAL_REDIS_PORT="${LOCAL_REDIS_PORT:-6380}"
+LOCAL_MQTT_PORT="${LOCAL_MQTT_PORT:-1883}"
+LOCAL_MQTT_HTTP_PORT="${LOCAL_MQTT_HTTP_PORT:-8888}"
 
 # Colors
 GREEN='\033[0;32m'
@@ -84,12 +87,22 @@ echo "Password: (none)"
 echo "----------------------------------------------------------------"
 echo ""
 
+echo -e "${GREEN}MQTT (VerneMQ) Details:${NC}"
+echo "----------------------------------------------------------------"
+echo "Host:         localhost"
+echo "MQTT Port:    $LOCAL_MQTT_PORT (Anonymous)"
+echo "HTTP Port:    $LOCAL_MQTT_HTTP_PORT (Admin/Status)"
+echo "Status Page:  http://localhost:$LOCAL_MQTT_HTTP_PORT/status"
+echo "----------------------------------------------------------------"
+echo ""
+
 log_info "Starting Port Forwards..."
 
 # Kill existing port-forwards if any
 # Using simple pattern matching to avoid killing unrelated processes
 pkill -f "kubectl port-forward.*$PG_CLUSTER_NAME" >/dev/null 2>&1
 pkill -f "kubectl port-forward.*$REDIS_SERVICE_NAME" >/dev/null 2>&1
+pkill -f "kubectl port-forward.*$MQTT_SERVICE_NAME" >/dev/null 2>&1
 
 # Port forward Postgres
 # Service is usually <cluster-name>-rw for read-write
@@ -103,6 +116,11 @@ log_info "Forwarding Redis ($REDIS_SERVICE_NAME:6379 -> :$LOCAL_REDIS_PORT)..."
 kubectl port-forward svc/"$REDIS_SERVICE_NAME" "$LOCAL_REDIS_PORT":6379 -n "$NAMESPACE" > /dev/null 2>&1 &
 REDIS_PID=$!
 
+# Port forward MQTT
+log_info "Forwarding MQTT & HTTP ($MQTT_SERVICE_NAME:1883 -> :$LOCAL_MQTT_PORT, 8888 -> :$LOCAL_MQTT_HTTP_PORT)..."
+kubectl port-forward svc/"$MQTT_SERVICE_NAME" "$LOCAL_MQTT_PORT":1883 "$LOCAL_MQTT_HTTP_PORT":8888 -n "$NAMESPACE" > /dev/null 2>&1 &
+MQTT_PID=$!
+
 log_success "Port forwarding started."
 echo "Press Ctrl+C to stop."
 
@@ -112,6 +130,7 @@ cleanup() {
     log_info "Stopping port forwards..."
     kill $PG_PID 2>/dev/null
     kill $REDIS_PID 2>/dev/null
+    kill $MQTT_PID 2>/dev/null
     exit
 }
 trap cleanup INT
