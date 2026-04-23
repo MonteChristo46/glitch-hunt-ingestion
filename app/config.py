@@ -12,9 +12,11 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
-    REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
+    REDIS_CACHE_DB: int = int(os.getenv("REDIS_CACHE_DB", 2))
+    REDIS_EVENTS_DB: int = int(os.getenv("REDIS_EVENTS_DB", 0))
     REDIS_STREAM_KEY: str = "ingest:events"
     REDIS_STREAM_MAXLEN: int = int(os.getenv("REDIS_STREAM_MAXLEN", 1000000))
+    REDIS_QUOTA_TTL: int = int(os.getenv("REDIS_QUOTA_TTL", 60))
 
     # Postgres Configuration
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "admin")

@@ -11,15 +11,38 @@ from app.models.redis import IngestionEventPayload
 
 class RedisClient:
     def __init__(self):
-        self.redis = redis.Redis(
+        self.redis_cache = redis.Redis(
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
+            db=settings.REDIS_CACHE_DB,
+            decode_responses=True
+        )
+        self.redis_stream = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=settings.REDIS_EVENTS_DB,
+            decode_responses=True
+        )
+        self.redis_quota = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=1,
             decode_responses=True
         )
 
     async def close(self):
-        await self.redis.close()
+        await self.redis_cache.close()
+        await self.redis_stream.close()
+        await self.redis_quota.close()
+
+    async def get_quota(self, account_id: str) -> int | None:
+        key = f"quota:{account_id}"
+        val = await self.redis_quota.get(key)
+        return int(val) if val is not None else None
+
+    async def set_quota(self, account_id: str, quota: int):
+        key = f"quota:{account_id}"
+        await self.redis_quota.set(key, quota, ex=settings.REDIS_QUOTA_TTL)
 
     async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30, server_start_time: float | None = None, account_id: str | None = None):
         key = f"handshake:{handshake_id}"
@@ -29,11 +52,11 @@ class RedisClient:
             data['_server_start_time'] = server_start_time
         if account_id is not None:
             data['account_id'] = account_id
-        await self.redis.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
+        await self.redis_cache.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
 
     async def get_handshake(self, handshake_id: UUID) -> dict | None:
         key = f"handshake:{handshake_id}"
-        data = await self.redis.get(key)
+        data = await self.redis_cache.get(key)
         if data:
             return json.loads(data)
         return None
@@ -73,7 +96,7 @@ class RedisClient:
             "payload": payload_model.model_dump_json()
         }
         
-        await self.redis.xadd(
+        await self.redis_stream.xadd(
             settings.REDIS_STREAM_KEY,
             event_data,
             maxlen=settings.REDIS_STREAM_MAXLEN,
@@ -94,13 +117,13 @@ class RedisClient:
             "device_id": device_id,
             "status": PairingStatus.WAITING.value
         }
-        await self.redis.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
+        await self.redis_cache.setex(key, timedelta(minutes=ttl_minutes), json.dumps(data))
         
         return code
 
     async def get_pairing_status(self, code: str, device_id: str) -> dict | None:
         key = f"pairing:{code}"
-        data = await self.redis.get(key)
+        data = await self.redis_cache.get(key)
         
         if not data:
             return None

@@ -32,6 +32,7 @@ api:
     # MINIO_BUCKET_NAME: "glitch-hunt-dev"
     logLevel: "info"
     redisStreamMaxlen: "1000000"
+    redisQuotaTtl: "60"
   resources: {}
     # limits:
     #   cpu: 100m

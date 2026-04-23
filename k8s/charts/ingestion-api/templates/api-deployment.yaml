@@ -32,6 +32,8 @@ spec:
               value: "6379"
             - name: REDIS_STREAM_MAXLEN
               value: {{ .Values.api.env.redisStreamMaxlen | quote }}
+            - name: REDIS_QUOTA_TTL
+              value: {{ .Values.api.env.redisQuotaTtl | quote }}
             - name: MINIO_ENDPOINT
               value: {{ .Values.minio.endpoint | quote }}
             - name: MINIO_REGION

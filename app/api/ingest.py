@@ -11,9 +11,53 @@ from app.services.storage import StorageService, get_storage_service
 from app.db.session import DatabaseManager, get_db
 from app.db.handlers.devices import DeviceHandler
 from app.db.handlers.images import ImageHandler
+from app.db.handlers.accounts import AccountHandler
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+async def verify_quota(
+    request: IngestRequest,
+    redis: RedisClient = Depends(get_redis_client),
+    db: DatabaseManager = Depends(get_db)
+):
+    """
+    Gateway Dependency: Verifies device authorization and account quota.
+    Implements Lazy Load from Postgres to Redis DB 1 if quota key is missing.
+    """
+    device_handler = DeviceHandler(db.pool)
+    device = await device_handler.get_by_id(request.device_id)
+
+    if not device or not device.is_active:
+        logger.warning(f"Unauthorized access attempt by device: {request.device_id}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Device not authorized or inactive"
+        )
+
+    account_id = str(device.account_id)
+    
+    # 1. Check Redis DB 1 (Quota Cache)
+    remaining_quota = await redis.get_quota(account_id)
+    
+    if remaining_quota is None:
+        # 2. Lazy Load: Not in Redis, fetch from Postgres
+        account_handler = AccountHandler(db.pool)
+        remaining_quota = await account_handler.get_remaining_quota(account_id)
+        
+        # 3. Re-hydrate Redis
+        await redis.set_quota(account_id, remaining_quota)
+        logger.info(f"Quota Lazy Load: Hydrated {account_id} with {remaining_quota}")
+
+    # 4. Validate Quota
+    if remaining_quota <= 0:
+        logger.warning(f"Quota Exceeded for account: {account_id}")
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Quota Exceeded"
+        )
+
+    return device
 
 # Metrics
 INGESTION_DURATION = Histogram(
@@ -26,23 +70,10 @@ INGESTION_DURATION = Histogram(
 @router.post("/request", response_model=IngestResponse, status_code=status.HTTP_201_CREATED)
 async def ingest_request(
     request: IngestRequest,
+    device = Depends(verify_quota),
     redis: RedisClient = Depends(get_redis_client),
-    storage: StorageService = Depends(get_storage_service),
-    db: DatabaseManager = Depends(get_db)
+    storage: StorageService = Depends(get_storage_service)
 ):
-    device_handler = DeviceHandler(db.pool)
-    
-    # Verify Device Authorization
-    logger.debug(f"Checking authorization for device: {request.device_id}")
-    device = await device_handler.get_by_id(request.device_id)
-
-    if not device or not device.is_active:
-        logger.warning(f"Unauthorized access attempt by device: {request.device_id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Device not authorized or inactive"
-        )
-
     start_time = time.time()
     handshake_id = uuid4()
     

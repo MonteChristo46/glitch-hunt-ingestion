@@ -43,6 +43,8 @@ def mock_redis():
     mock.cache_handshake = AsyncMock()
     mock.get_handshake = AsyncMock()
     mock.push_event = AsyncMock()
+    mock.get_quota = AsyncMock(return_value=1000)
+    mock.set_quota = AsyncMock()
     return mock
 
 @pytest.fixture
