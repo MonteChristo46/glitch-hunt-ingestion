@@ -10,18 +10,17 @@ ENV UV_COMPILE_BYTECODE=1 \
 WORKDIR /app
 
 # 1. Install dependencies first for better layer caching
-# This only re-runs if uv.lock or pyproject.toml changes
+# This only re-runs if pyproject.toml changes
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --no-install-project --no-dev
 
 # 2. Copy the rest of the application
 COPY . /app
 
 # 3. Final sync to include the local 'app' package
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --no-dev
 
 # --- Stage 2: Final Production Stage ---
 FROM python:3.12-slim-bookworm

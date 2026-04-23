@@ -2,7 +2,26 @@
 
 # Configuration
 # Default values can be overridden by environment variables
-NAMESPACE="${NAMESPACE:-glitch-hunt}"
+ENV="dev"
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -e|--env)
+      ENV="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+if [ "$ENV" = "prod" ]; then
+    NAMESPACE="glitch-hunt"
+else
+    NAMESPACE="glitch-hunt-dev"
+fi
+
 # Release name assumption: glitch-hunt. If different, update these variables.
 PG_CLUSTER_NAME="${PG_CLUSTER_NAME:-glitch-hunt-db}"
 REDIS_SERVICE_NAME="${REDIS_SERVICE_NAME:-glitch-hunt-redis}"
