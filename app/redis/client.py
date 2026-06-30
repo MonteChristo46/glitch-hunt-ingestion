@@ -44,6 +44,10 @@ class RedisClient:
         key = f"quota:{account_id}"
         await self.redis_quota.set(key, quota, ex=settings.REDIS_QUOTA_TTL)
 
+    async def invalidate_quota(self, account_id: str):
+        key = f"quota:{account_id}"
+        await self.redis_quota.delete(key)
+
     async def cache_handshake(self, handshake_id: UUID, payload: IngestRequest, ttl_minutes: int = 30, server_start_time: float | None = None, account_id: str | None = None):
         key = f"handshake:{handshake_id}"
         # Serialize datetime objects to string for JSON serialization

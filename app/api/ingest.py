@@ -1,6 +1,6 @@
 import time
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from prometheus_client import Histogram
 from app.models.ingest import IngestRequest, IngestResponse, ConfirmRequest
@@ -152,6 +152,12 @@ async def ingest_confirm(
                 route_key=route_key
             )
             await image_handler.create(image_create)
+
+            account_id = handshake_data.get("account_id")
+            if account_id:
+                account_handler = AccountHandler(db.pool)
+                await account_handler.increment_inference_count(account_id)
+                await redis.invalidate_quota(account_id)
         except Exception as e:
             logger.error(f"Failed to record image in DB: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error")

@@ -27,7 +27,6 @@ class AccountHandler(BaseHandler):
         Calculates the remaining quota for an account based on their subscription tier
         and current usage period.
         """
-        # Ensure account_id is a UUID object for asyncpg
         if isinstance(account_id, str):
             account_id = UUID(account_id)
 
@@ -56,3 +55,25 @@ class AccountHandler(BaseHandler):
         async with self.pool.acquire() as conn:
             remaining_quota = await conn.fetchval(query, account_id)
             return remaining_quota if remaining_quota is not None else 0
+
+    async def increment_inference_count(self, account_id: Union[UUID, str]) -> None:
+        """
+        Increments the inference usage counter for the account's current billing period.
+        Creates the period row if it doesn't exist yet.
+        """
+        if isinstance(account_id, str):
+            account_id = UUID(account_id)
+
+        query = """
+            INSERT INTO account_usage_counters (account_id, period_start, period_end, inference_count)
+            SELECT $1,
+                   COALESCE(a.current_period_end - INTERVAL '1 month', date_trunc('month', CURRENT_TIMESTAMP)),
+                   COALESCE(a.current_period_end, date_trunc('month', CURRENT_TIMESTAMP) + INTERVAL '1 month'),
+                   1
+            FROM accounts a
+            WHERE a.id = $1
+            ON CONFLICT (account_id, period_start) DO UPDATE
+            SET inference_count = account_usage_counters.inference_count + 1;
+        """
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, account_id)

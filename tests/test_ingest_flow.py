@@ -45,6 +45,7 @@ def mock_redis():
     mock.push_event = AsyncMock()
     mock.get_quota = AsyncMock(return_value=1000)
     mock.set_quota = AsyncMock()
+    mock.invalidate_quota = AsyncMock()
     return mock
 
 @pytest.fixture
@@ -162,8 +163,10 @@ def test_ingest_confirm_success(mock_redis):
 
     # Setup Redis to return handshake data
     handshake_id = "12345678-1234-5678-1234-567812345678"
+    account_id = "12345678-1234-5678-1234-567812345679"
     mock_redis.get_handshake.return_value = {
         "device_id": "test-device",
+        "account_id": account_id,
         "timestamp": "2024-01-01T00:00:00Z",
         "metadata": {"s3_key": "path/to/image.jpg"},
         "device_context": {"foo": "bar"},
@@ -175,23 +178,31 @@ def test_ingest_confirm_success(mock_redis):
         "status": "INGESTED"
     }
 
-    # Patch ImageHandler
-    with patch("app.api.ingest.ImageHandler") as MockImageHandler:
-        instance = MockImageHandler.return_value
-        instance.create = AsyncMock()
+    # Patch ImageHandler and AccountHandler
+    with patch("app.api.ingest.ImageHandler") as MockImageHandler, \
+         patch("app.api.ingest.AccountHandler") as MockAccountHandler:
+        image_handler_instance = MockImageHandler.return_value
+        image_handler_instance.create = AsyncMock()
+
+        account_handler_instance = MockAccountHandler.return_value
+        account_handler_instance.increment_inference_count = AsyncMock()
 
         response = client.post("/v1/ingest/confirm", json=payload)
         
         assert response.status_code == 200
         
         # Verify ImageHandler called
-        instance.create.assert_awaited_once()
-        call_args = instance.create.await_args[0][0] # First arg of first call
+        image_handler_instance.create.assert_awaited_once()
+        call_args = image_handler_instance.create.await_args[0][0]
         
         assert call_args.device_id == "test-device"
         assert call_args.image_path == "path/to/image.jpg"
         assert call_args.context == {"foo": "bar"}
         assert call_args.status == "INGESTED"
+
+        # Verify quota decremented
+        account_handler_instance.increment_inference_count.assert_awaited_once_with(account_id)
+        mock_redis.invalidate_quota.assert_awaited_once_with(account_id)
         
         # Verify Redis Event Pushed
         mock_redis.push_event.assert_awaited_once()
@@ -219,7 +230,8 @@ def test_ingest_confirm_missing_key(mock_redis):
         "status": "INGESTED"
     }
 
-    with patch("app.api.ingest.ImageHandler") as MockImageHandler:
+    with patch("app.api.ingest.ImageHandler") as MockImageHandler, \
+         patch("app.api.ingest.AccountHandler") as MockAccountHandler:
         response = client.post("/v1/ingest/confirm", json=payload)
         assert response.status_code == 500
         assert "s3_key missing" in response.json()["detail"]
