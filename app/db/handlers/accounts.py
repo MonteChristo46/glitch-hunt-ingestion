@@ -35,8 +35,6 @@ class AccountHandler(BaseHandler):
                 SELECT 
                     a.id as account_id, 
                     a.tier_id, 
-                    COALESCE(a.current_period_end, date_trunc('month', CURRENT_TIMESTAMP) + interval '1 month') as period_end, 
-                    (COALESCE(a.current_period_end, date_trunc('month', CURRENT_TIMESTAMP) + interval '1 month') - interval '1 month') as period_start,
                     st.inference_limit_monthly
                 FROM accounts a
                 JOIN subscription_tiers st ON a.tier_id = st.id
@@ -45,7 +43,8 @@ class AccountHandler(BaseHandler):
             current_usage AS (
                 SELECT inference_count
                 FROM account_usage_counters auc
-                JOIN account_info ai ON auc.account_id = ai.account_id AND auc.period_start = ai.period_start
+                JOIN account_info ai ON auc.account_id = ai.account_id
+                WHERE auc.period_start = date_trunc('month', CURRENT_TIMESTAMP)
             )
             SELECT 
                 ai.inference_limit_monthly - COALESCE(cu.inference_count, 0) as remaining_quota
@@ -67,11 +66,9 @@ class AccountHandler(BaseHandler):
         query = """
             INSERT INTO account_usage_counters (account_id, period_start, period_end, inference_count)
             SELECT $1,
-                   COALESCE(a.current_period_end - INTERVAL '1 month', date_trunc('month', CURRENT_TIMESTAMP)),
-                   COALESCE(a.current_period_end, date_trunc('month', CURRENT_TIMESTAMP) + INTERVAL '1 month'),
+                   date_trunc('month', CURRENT_TIMESTAMP),
+                   (date_trunc('month', CURRENT_TIMESTAMP) + INTERVAL '1 month'),
                    1
-            FROM accounts a
-            WHERE a.id = $1
             ON CONFLICT (account_id, period_start) DO UPDATE
             SET inference_count = account_usage_counters.inference_count + 1;
         """
