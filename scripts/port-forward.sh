@@ -1,7 +1,23 @@
 #!/bin/bash
 
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# --- Usage ---
+usage() {
+    echo "Usage: ./port-forward.sh [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -e, --env [dev|prod]  - Target environment (default: dev)"
+    echo "  -h, --help            - Show this help message"
+    exit 1
+}
+
 # Configuration
-# Default values can be overridden by environment variables
 ENV="dev"
 
 while [[ $# -gt 0 ]]; do
@@ -10,14 +26,26 @@ while [[ $# -gt 0 ]]; do
       ENV="$2"
       shift 2
       ;;
+    -h|--help)
+      usage
+      ;;
+    -*|--*)
+      echo -e "${YELLOW}Unknown option $1${NC}"
+      usage
+      ;;
     *)
       shift
       ;;
   esac
 done
 
+if [[ "$ENV" != "dev" && "$ENV" != "prod" ]]; then
+    echo -e "${YELLOW}Error: Invalid environment '$ENV'. Must be 'dev' or 'prod'.${NC}"
+    usage
+fi
+
 if [ "$ENV" = "prod" ]; then
-    NAMESPACE="glitch-hunt"
+    NAMESPACE="glitch-hunt-prod"
 else
     NAMESPACE="glitch-hunt-dev"
 fi
@@ -32,12 +60,6 @@ LOCAL_PG_PORT="${LOCAL_PG_PORT:-5433}"
 LOCAL_REDIS_PORT="${LOCAL_REDIS_PORT:-6380}"
 LOCAL_MQTT_PORT="${LOCAL_MQTT_PORT:-1883}"
 LOCAL_MQTT_HTTP_PORT="${LOCAL_MQTT_HTTP_PORT:-8888}"
-
-# Colors
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
