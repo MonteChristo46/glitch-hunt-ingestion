@@ -34,18 +34,18 @@ spec:
               value: {{ .Values.api.env.redisStreamMaxlen | quote }}
             - name: REDIS_QUOTA_TTL
               value: {{ .Values.api.env.redisQuotaTtl | quote }}
-            - name: MINIO_ENDPOINT
+            - name: S3_ENDPOINT
               value: {{ .Values.minio.endpoint | quote }}
-            - name: MINIO_REGION
+            - name: S3_REGION
               value: {{ .Values.minio.region | quote }}
-            - name: MINIO_BUCKET_NAME
+            - name: S3_BUCKET_NAME
               value: {{ .Values.minio.bucketName | quote }}
-            - name: MINIO_ACCESS_KEY
+            - name: S3_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ default (printf "%s-minio" (include "glitch-hunt.fullname" .)) .Values.minio.existingSecret }}
                   key: access-key
-            - name: MINIO_SECRET_KEY
+            - name: S3_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ default (printf "%s-minio" (include "glitch-hunt.fullname" .)) .Values.minio.existingSecret }}
